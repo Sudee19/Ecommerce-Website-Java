@@ -60,6 +60,8 @@ export const productsAPI = {
   getBestSellers: (params) => api.get('/products/best-sellers', { params }),
   search: (query, params) => api.get('/products/search', { params: { q: query, ...params } }),
   getRelated: (productId, params) => api.get(`/products/${productId}/related`, { params }),
+  filterByPrice: (params) => api.get('/products/filter/price', { params }),
+  filterByRating: (params) => api.get('/products/filter/rating', { params }),
   // Admin product operations
   create: (data) => api.post('/admin/products', data),
   update: (id, data) => api.put(`/admin/products/${id}`, data),

@@ -24,6 +24,7 @@ export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isDark, setIsDark] = useState(false);
+  const [accent, setAccent] = useState('blue');
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   
@@ -54,6 +55,16 @@ export default function Navbar() {
     if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
       setIsDark(true);
       document.documentElement.classList.add('dark');
+    }
+  }, []);
+
+  useEffect(() => {
+    const savedAccent = localStorage.getItem('accent') || 'blue';
+    setAccent(savedAccent);
+    if (savedAccent && savedAccent !== 'blue') {
+      document.documentElement.setAttribute('data-accent', savedAccent);
+    } else {
+      document.documentElement.removeAttribute('data-accent');
     }
   }, []);
 
@@ -95,11 +106,30 @@ export default function Navbar() {
     { name: 'Featured', path: '/products?featured=true' },
   ];
 
+  const accentOptions = [
+    { value: 'blue', label: 'Blue', swatchClass: 'bg-blue-500' },
+    { value: 'emerald', label: 'Emerald', swatchClass: 'bg-emerald-500' },
+    { value: 'violet', label: 'Violet', swatchClass: 'bg-violet-500' },
+    { value: 'rose', label: 'Rose', swatchClass: 'bg-rose-500' },
+    { value: 'amber', label: 'Amber', swatchClass: 'bg-amber-500' },
+  ];
+
+  const applyAccent = (nextAccent) => {
+    setAccent(nextAccent);
+    if (!nextAccent || nextAccent === 'blue') {
+      document.documentElement.removeAttribute('data-accent');
+      localStorage.removeItem('accent');
+      return;
+    }
+    document.documentElement.setAttribute('data-accent', nextAccent);
+    localStorage.setItem('accent', nextAccent);
+  };
+
   return (
     <nav className={`sticky top-0 z-50 transition-all duration-300 ${
       isScrolled 
-        ? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg shadow-soft' 
-        : 'bg-white dark:bg-gray-900'
+        ? 'bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg shadow-soft' 
+        : 'bg-white dark:bg-gray-950'
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-18">
@@ -165,6 +195,57 @@ export default function Navbar() {
             >
               {isDark ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
             </button>
+
+            {/* Accent Theme */}
+            <Menu as="div" className="relative">
+              <Menu.Button
+                className="p-2.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 
+                          hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200"
+                aria-label="Change accent color"
+              >
+                <Cog6ToothIcon className="h-5 w-5" />
+              </Menu.Button>
+
+              <Transition
+                as={Fragment}
+                enter="transition ease-out duration-200"
+                enterFrom="transform opacity-0 scale-95"
+                enterTo="transform opacity-100 scale-100"
+                leave="transition ease-in duration-150"
+                leaveFrom="transform opacity-100 scale-100"
+                leaveTo="transform opacity-0 scale-95"
+              >
+                <Menu.Items
+                  className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-900 rounded-xl 
+                            shadow-soft-lg border border-gray-100 dark:border-gray-800 py-2 focus:outline-none"
+                >
+                  <div className="px-4 py-2">
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                      Accent Color
+                    </p>
+                  </div>
+                  {accentOptions.map((opt) => (
+                    <Menu.Item key={opt.value}>
+                      {({ active }) => (
+                        <button
+                          type="button"
+                          onClick={() => applyAccent(opt.value)}
+                          className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm ${
+                            active ? 'bg-gray-50 dark:bg-gray-800/60' : ''
+                          } text-gray-700 dark:text-gray-200`}
+                        >
+                          <span className={`w-3 h-3 rounded-full ${opt.swatchClass}`} />
+                          <span className="flex-1 text-left">{opt.label}</span>
+                          {accent === opt.value && (
+                            <span className="text-xs text-gray-400">Selected</span>
+                          )}
+                        </button>
+                      )}
+                    </Menu.Item>
+                  ))}
+                </Menu.Items>
+              </Transition>
+            </Menu>
 
             {/* Wishlist */}
             <Link 

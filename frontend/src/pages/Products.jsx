@@ -12,7 +12,7 @@ export default function Products() {
   const [isLoading, setIsLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [totalPages, setTotalPages] = useState(0);
-  
+
   const [filters, setFilters] = useState({
     category: searchParams.get('category') || '',
     minPrice: searchParams.get('minPrice') || '',
@@ -21,9 +21,22 @@ export default function Products() {
     sortBy: searchParams.get('sortBy') || 'createdAt',
     sortDir: searchParams.get('sortDir') || 'desc',
   });
-  
+
   const page = parseInt(searchParams.get('page') || '0');
   const searchQuery = searchParams.get('search') || '';
+  const isFeatured = searchParams.get('featured') === 'true';
+
+  useEffect(() => {
+    setFilters((prev) => ({
+      ...prev,
+      category: searchParams.get('category') || '',
+      minPrice: searchParams.get('minPrice') || '',
+      maxPrice: searchParams.get('maxPrice') || '',
+      minRating: searchParams.get('minRating') || '',
+      sortBy: searchParams.get('sortBy') || 'createdAt',
+      sortDir: searchParams.get('sortDir') || 'desc',
+    }));
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -51,8 +64,14 @@ export default function Products() {
 
         if (searchQuery) {
           response = await productsAPI.search(searchQuery, params);
+        } else if (isFeatured) {
+          response = await productsAPI.getFeatured(params);
         } else if (filters.category) {
           response = await productsAPI.getByCategory(filters.category, params);
+        } else if (filters.minRating) {
+          response = await productsAPI.filterByRating({ minRating: filters.minRating, ...params });
+        } else if (filters.minPrice !== '' && filters.maxPrice !== '') {
+          response = await productsAPI.filterByPrice({ min: filters.minPrice, max: filters.maxPrice, ...params });
         } else {
           response = await productsAPI.getAll(params);
         }
@@ -67,12 +86,12 @@ export default function Products() {
       }
     };
     fetchProducts();
-  }, [page, searchQuery, filters]);
+  }, [page, searchQuery, filters, isFeatured]);
 
   const handleFilterChange = (key, value) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
-    
+
     const newParams = new URLSearchParams(searchParams);
     if (value) {
       newParams.set(key, value);

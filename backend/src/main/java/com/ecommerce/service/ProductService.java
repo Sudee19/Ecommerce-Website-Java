@@ -112,19 +112,24 @@ public class ProductService {
         product.setFeatured(request.isFeatured());
         if (request.getTags() != null) product.setTags(request.getTags());
         
+        // Update product specs if any spec field is provided in the request
         if (request.getWeight() != null || request.getDimensions() != null || 
             request.getColor() != null || request.getMaterial() != null || 
             request.getWarranty() != null) {
             
+            // Get existing specs or create new if null
             Product.ProductSpecs specs = product.getSpecs();
             if (specs == null) {
                 specs = new Product.ProductSpecs();
             }
+            
+            // Update only the fields that are provided in the request
             if (request.getWeight() != null) specs.setWeight(request.getWeight());
             if (request.getDimensions() != null) specs.setDimensions(request.getDimensions());
             if (request.getColor() != null) specs.setColor(request.getColor());
             if (request.getMaterial() != null) specs.setMaterial(request.getMaterial());
             if (request.getWarranty() != null) specs.setWarranty(request.getWarranty());
+            
             product.setSpecs(specs);
         }
         

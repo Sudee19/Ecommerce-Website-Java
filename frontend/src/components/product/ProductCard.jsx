@@ -21,6 +21,10 @@ export default function ProductCard({ product, showQuickView = true }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
 
+  const [imageSrc, setImageSrc] = useState(
+    product.images?.[0] || 'https://picsum.photos/seed/no-image/800/800'
+  );
+
   const inWishlist = isInWishlist(product.id);
 
   const handleAddToCart = async (e) => {
@@ -87,12 +91,16 @@ export default function ProductCard({ product, showQuickView = true }) {
           )}
           
           <img
-            src={product.images?.[0] || 'https://via.placeholder.com/400x400?text=No+Image'}
+            src={imageSrc}
             alt={product.name}
             className={`w-full h-full object-cover transition-all duration-500 
                        ${isHovered ? 'scale-110' : 'scale-100'}
                        ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
             onLoad={() => setImageLoaded(true)}
+            onError={() => {
+              setImageLoaded(true);
+              setImageSrc('https://picsum.photos/seed/no-image/800/800');
+            }}
             loading="lazy"
           />
           

@@ -70,7 +70,7 @@ export default function AdminDashboard() {
       icon: ShoppingBagIcon,
       change: '+8%',
       isPositive: true,
-      color: 'bg-blue-500',
+      color: 'bg-primary-500',
     },
     {
       title: 'Total Products',
@@ -78,7 +78,7 @@ export default function AdminDashboard() {
       icon: CubeIcon,
       change: '+5%',
       isPositive: true,
-      color: 'bg-purple-500',
+      color: 'bg-accent-500',
     },
     {
       title: 'Total Users',
@@ -93,9 +93,9 @@ export default function AdminDashboard() {
   const getStatusBadge = (status) => {
     const styles = {
       PENDING: 'bg-yellow-100 text-yellow-800',
-      CONFIRMED: 'bg-blue-100 text-blue-800',
-      PROCESSING: 'bg-blue-100 text-blue-800',
-      SHIPPED: 'bg-purple-100 text-purple-800',
+      CONFIRMED: 'bg-primary-100 text-primary-800',
+      PROCESSING: 'bg-primary-100 text-primary-800',
+      SHIPPED: 'bg-accent-100 text-accent-800',
       DELIVERED: 'bg-green-100 text-green-800',
       CANCELLED: 'bg-red-100 text-red-800',
     };

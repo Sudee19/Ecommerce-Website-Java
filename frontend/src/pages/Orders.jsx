@@ -34,9 +34,9 @@ export default function Orders() {
         return <ClockIcon className="h-5 w-5 text-yellow-500" />;
       case 'PROCESSING':
       case 'CONFIRMED':
-        return <ShoppingBagIcon className="h-5 w-5 text-blue-500" />;
+        return <ShoppingBagIcon className="h-5 w-5 text-primary-500" />;
       case 'SHIPPED':
-        return <TruckIcon className="h-5 w-5 text-purple-500" />;
+        return <TruckIcon className="h-5 w-5 text-accent-500" />;
       case 'DELIVERED':
         return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
       case 'CANCELLED':
@@ -49,9 +49,9 @@ export default function Orders() {
   const getStatusBadge = (status) => {
     const styles = {
       PENDING: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-      CONFIRMED: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-      PROCESSING: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-      SHIPPED: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+      CONFIRMED: 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200',
+      PROCESSING: 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200',
+      SHIPPED: 'bg-accent-100 text-accent-800 dark:bg-accent-900 dark:text-accent-200',
       DELIVERED: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
       CANCELLED: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
     };

@@ -118,8 +118,8 @@ export default function AdminUsers() {
                           onChange={(e) => handleRoleChange(user.id, e.target.value)}
                           className={`px-2 py-1 rounded-full text-xs font-medium border-0 ${
                             user.role === 'ADMIN'
-                              ? 'bg-purple-100 text-purple-800'
-                              : 'bg-blue-100 text-blue-800'
+                              ? 'bg-accent-100 text-accent-800'
+                              : 'bg-primary-100 text-primary-800'
                           }`}
                         >
                           <option value="USER">USER</option>

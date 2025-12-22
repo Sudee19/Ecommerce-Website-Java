@@ -55,10 +55,10 @@ export function Rating({ value = 0, onChange, readonly = false, size = 'md' }) {
 export function Alert({ type = 'info', title, children, onClose, className = '' }) {
   const styles = {
     info: {
-      container: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
-      icon: 'text-blue-500',
-      title: 'text-blue-800 dark:text-blue-200',
-      text: 'text-blue-700 dark:text-blue-300',
+      container: 'bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800',
+      icon: 'text-primary-500',
+      title: 'text-primary-800 dark:text-primary-200',
+      text: 'text-primary-700 dark:text-primary-300',
       Icon: InformationCircleIcon,
     },
     success: {

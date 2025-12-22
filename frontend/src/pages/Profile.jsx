@@ -244,8 +244,8 @@ export default function Profile() {
                 </h2>
                 <span className={`text-sm px-2 py-1 rounded ${
                   user.role === 'ADMIN' 
-                    ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
-                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                    ? 'bg-accent-100 text-accent-800 dark:bg-accent-900 dark:text-accent-200'
+                    : 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200'
                 }`}>
                   {user.role}
                 </span>

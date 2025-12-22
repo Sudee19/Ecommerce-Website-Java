@@ -24,6 +24,8 @@ export default function ProductDetails() {
   const { addToCart, isLoading: cartLoading } = useCartStore();
   const { isAuthenticated } = useAuthStore();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlistStore();
+
+  const imageFallback = 'https://picsum.photos/seed/no-image/800/800';
   
   const [product, setProduct] = useState(null);
   const [reviews, setReviews] = useState([]);
@@ -115,9 +117,12 @@ export default function ProductDetails() {
         <div>
           <div className="aspect-square bg-gray-100 dark:bg-gray-700 rounded-2xl overflow-hidden mb-4">
             <img
-              src={product.images?.[selectedImage] || 'https://via.placeholder.com/600'}
+              src={product.images?.[selectedImage] || imageFallback}
               alt={product.name}
               className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src = imageFallback;
+              }}
             />
           </div>
           {product.images?.length > 1 && (
@@ -130,7 +135,14 @@ export default function ProductDetails() {
                     selectedImage === index ? 'border-primary-600' : 'border-transparent'
                   }`}
                 >
-                  <img src={image} alt="" className="w-full h-full object-cover" />
+                  <img
+                    src={image}
+                    alt=""
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = imageFallback;
+                    }}
+                  />
                 </button>
               ))}
             </div>
