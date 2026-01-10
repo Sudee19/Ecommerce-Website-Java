@@ -28,4 +28,10 @@ public class AuthController {
         AuthResponse response = authService.login(request);
         return ResponseEntity.ok(ApiResponse.success("Login successful", response));
     }
+
+    @PostMapping("/demo")
+    public ResponseEntity<ApiResponse<AuthResponse>> demo() {
+        AuthResponse response = authService.demoLogin();
+        return ResponseEntity.ok(ApiResponse.success("Demo login successful", response));
+    }
 }

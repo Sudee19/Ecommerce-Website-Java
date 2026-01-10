@@ -25,6 +25,9 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManager authenticationManager;
+    private final DemoDataService demoDataService;
+
+    private static final String DEMO_EMAIL = "demo@ecommerce.local";
     
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -56,6 +59,23 @@ public class AuthService {
                 .orElseThrow(() -> new BadRequestException("User not found"));
         
         String token = jwtTokenProvider.generateToken(authentication);
+        return AuthResponse.of(token, UserResponse.fromUser(user));
+    }
+
+    public AuthResponse demoLogin() {
+        User user = userRepository.findByEmail(DEMO_EMAIL)
+                .orElseGet(() -> userRepository.save(User.builder()
+                        .firstName("Demo")
+                        .lastName("User")
+                        .email(DEMO_EMAIL)
+                        .password(passwordEncoder.encode("demo-password"))
+                        .roles(Set.of(User.Role.USER))
+                        .active(true)
+                        .build()));
+
+        demoDataService.ensureDemoData(user);
+
+        String token = jwtTokenProvider.generateToken(user.getEmail());
         return AuthResponse.of(token, UserResponse.fromUser(user));
     }
 }

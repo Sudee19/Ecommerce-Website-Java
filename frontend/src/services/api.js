@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -44,6 +44,7 @@ export default api;
 // Auth API
 export const authAPI = {
   login: (data) => api.post('/auth/login', data),
+  demo: () => api.post('/auth/demo'),
   register: (data) => api.post('/auth/register', data),
   refreshToken: () => api.post('/auth/refresh'),
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),

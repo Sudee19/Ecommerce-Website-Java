@@ -32,6 +32,27 @@ export const useAuthStore = create(
         }
       },
 
+      demoLogin: async () => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await authAPI.demo();
+          const { token, user } = response.data.data;
+          set({
+            user,
+            token,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+          return { success: true };
+        } catch (error) {
+          set({
+            error: error.response?.data?.message || 'Demo login failed',
+            isLoading: false,
+          });
+          return { success: false, error: error.response?.data?.message };
+        }
+      },
+
       register: async (userData) => {
         set({ isLoading: true, error: null });
         try {

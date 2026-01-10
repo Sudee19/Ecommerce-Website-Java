@@ -8,5 +8,5 @@ import java.util.Optional;
 
 @Repository
 public interface WishlistRepository extends MongoRepository<Wishlist, String> {
-    Optional<Wishlist> findByUserId(String userId);
+    Optional<Wishlist> findByUser_Id(String userId);
 }

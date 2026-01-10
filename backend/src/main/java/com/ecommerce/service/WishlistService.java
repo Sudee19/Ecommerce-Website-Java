@@ -22,7 +22,7 @@ public class WishlistService {
 
     @Transactional
     public Wishlist getOrCreateWishlist(User user) {
-        return wishlistRepository.findByUserId(user.getId())
+        return wishlistRepository.findByUser_Id(user.getId())
                 .orElseGet(() -> {
                     Wishlist wishlist = new Wishlist();
                     wishlist.setUser(user);
@@ -70,7 +70,7 @@ public class WishlistService {
 
     @Transactional(readOnly = true)
     public boolean isInWishlist(User user, String productId) {
-        Wishlist wishlist = wishlistRepository.findByUserId(user.getId()).orElse(null);
+        Wishlist wishlist = wishlistRepository.findByUser_Id(user.getId()).orElse(null);
         if (wishlist == null) {
             return false;
         }

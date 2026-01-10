@@ -1,0 +1,15 @@
+.git
+.gitignore
+.vscode
+.qodo
+
+**/node_modules
+**/dist
+**/build
+
+backend/target
+backend/.env
+frontend/.env
+
+**/*.log
+**/.DS_Store

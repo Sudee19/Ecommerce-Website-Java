@@ -7,7 +7,7 @@ import LoadingSpinner from '../components/ui/LoadingSpinner';
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isLoading, error } = useAuthStore();
+  const { login, demoLogin, isLoading, error } = useAuthStore();
   
   const [formData, setFormData] = useState({
     email: '',
@@ -24,8 +24,15 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const success = await login(formData);
-    if (success) {
+    const result = await login(formData);
+    if (result?.success) {
+      navigate(from, { replace: true });
+    }
+  };
+
+  const handleDemo = async () => {
+    const result = await demoLogin();
+    if (result?.success) {
       navigate(from, { replace: true });
     }
   };
@@ -117,6 +124,15 @@ export default function Login() {
               className="w-full btn-primary flex items-center justify-center"
             >
               {isLoading ? <LoadingSpinner size="sm" /> : 'Sign In'}
+            </button>
+
+            <button
+              type="button"
+              disabled={isLoading}
+              onClick={handleDemo}
+              className="w-full btn-secondary flex items-center justify-center"
+            >
+              {isLoading ? <LoadingSpinner size="sm" /> : 'Demo'}
             </button>
           </form>
 
