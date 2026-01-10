@@ -67,4 +67,4 @@ VITE_API_URL=http://localhost:8080/api
 
 MIT License
 
-<p align="center">Built with ❤️ by Shriram Mange</p>
+
