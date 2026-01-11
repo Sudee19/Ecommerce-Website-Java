@@ -12,6 +12,7 @@ import com.ecommerce.repository.OrderRepository;
 import com.ecommerce.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,7 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,6 +34,7 @@ public class OrderService {
     private final CartService cartService;
     private final UserService userService;
     private final PaymentService paymentService;
+    private final DemoModeService demoModeService;
     
     private static final BigDecimal TAX_RATE = new BigDecimal("0.18"); // 18% tax
     private static final BigDecimal FREE_SHIPPING_THRESHOLD = new BigDecimal("500");
@@ -40,6 +44,8 @@ public class OrderService {
     public OrderResponse createOrder(OrderRequest request) {
         User user = userService.getCurrentUser();
         Cart cart = cartService.getCartEntity();
+
+        boolean isDemoUser = demoModeService.isDemoUserId(user.getId());
         
         if (cart.getItems().isEmpty()) {
             throw new BadRequestException("Cart is empty");
@@ -54,10 +60,12 @@ public class OrderService {
                     if (product.getStockQuantity() < cartItem.getQuantity()) {
                         throw new BadRequestException("Insufficient stock for " + product.getName());
                     }
-                    
-                    // Reduce stock
-                    product.setStockQuantity(product.getStockQuantity() - cartItem.getQuantity());
-                    productRepository.save(product);
+
+                    if (!isDemoUser) {
+                        // Reduce stock
+                        product.setStockQuantity(product.getStockQuantity() - cartItem.getQuantity());
+                        productRepository.save(product);
+                    }
                     
                     return Order.OrderItem.builder()
                             .productId(cartItem.getProductId())
@@ -92,6 +100,7 @@ public class OrderService {
                          (user.getLastName() != null ? " " + user.getLastName() : "");
         
         Order order = Order.builder()
+                .id(isDemoUser ? ("demo-order-" + UUID.randomUUID()) : null)
                 .orderNumber(orderNumber)
                 .userId(user.getId())
                 .userName(userName.trim().isEmpty() ? "Customer" : userName.trim())
@@ -106,12 +115,19 @@ public class OrderService {
                 .paymentStatus(Order.PaymentStatus.PENDING)
                 .paymentMethod(request.getPaymentMethod())
                 .notes(request.getNotes())
+                .createdAt(isDemoUser ? LocalDateTime.now() : null)
                 .build();
-        
-        order = orderRepository.save(order);
+
+        order = isDemoUser
+                ? demoModeService.saveOrder(user, order)
+                : orderRepository.save(order);
         
         // Process payment (dummy implementation)
         paymentService.processPayment(order, request.getPaymentMethod());
+
+        if (isDemoUser) {
+            demoModeService.saveOrder(user, order);
+        }
         
         // Clear cart after successful order
         cartService.clearCart();
@@ -121,12 +137,35 @@ public class OrderService {
     
     public Page<OrderResponse> getUserOrders(Pageable pageable) {
         User user = userService.getCurrentUser();
+
+        if (demoModeService.isDemoUserId(user.getId())) {
+            List<Order> orders = demoModeService.getOrders(user);
+            int start = (int) pageable.getOffset();
+            if (start >= orders.size()) {
+                return new PageImpl<>(Collections.<OrderResponse>emptyList(), pageable, orders.size());
+            }
+            int end = Math.min(start + pageable.getPageSize(), orders.size());
+            List<OrderResponse> content = orders.subList(start, end).stream()
+                    .map(OrderResponse::fromOrder)
+                    .collect(Collectors.toList());
+            return new PageImpl<>(content, pageable, orders.size());
+        }
+
         return orderRepository.findByUserId(user.getId(), pageable)
                 .map(OrderResponse::fromOrder);
     }
     
     public OrderResponse getOrderById(String orderId) {
         User user = userService.getCurrentUser();
+
+        if (demoModeService.isDemoUserId(user.getId())) {
+            Order order = demoModeService.getOrder(user, orderId);
+            if (order == null) {
+                throw new ResourceNotFoundException("Order", "id", orderId);
+            }
+            return OrderResponse.fromOrder(order);
+        }
+
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
         
@@ -141,6 +180,27 @@ public class OrderService {
     
     public OrderResponse cancelOrder(String orderId) {
         User user = userService.getCurrentUser();
+
+        if (demoModeService.isDemoUserId(user.getId())) {
+            Order order = demoModeService.getOrder(user, orderId);
+            if (order == null) {
+                throw new ResourceNotFoundException("Order", "id", orderId);
+            }
+
+            if (!order.getUserId().equals(user.getId())) {
+                throw new BadRequestException("Access denied");
+            }
+
+            if (order.getStatus() != Order.OrderStatus.PENDING &&
+                order.getStatus() != Order.OrderStatus.CONFIRMED) {
+                throw new BadRequestException("Order cannot be cancelled at this stage");
+            }
+
+            order.setStatus(Order.OrderStatus.CANCELLED);
+            demoModeService.saveOrder(user, order);
+            return OrderResponse.fromOrder(order);
+        }
+
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", "id", orderId));
         

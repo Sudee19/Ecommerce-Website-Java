@@ -23,16 +23,21 @@ public class CartService {
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
     private final UserService userService;
+    private final DemoModeService demoModeService;
     
     public CartResponse getCart() {
         User user = userService.getCurrentUser();
-        Cart cart = getOrCreateCart(user.getId());
+        Cart cart = isDemoUser(user)
+                ? demoModeService.getOrCreateCartByUser(user)
+                : getOrCreateCart(user.getId());
         return CartResponse.fromCart(cart);
     }
     
     public CartResponse addToCart(CartItemRequest request) {
         User user = userService.getCurrentUser();
-        Cart cart = getOrCreateCart(user.getId());
+        Cart cart = isDemoUser(user)
+                ? demoModeService.getOrCreateCartByUser(user)
+                : getOrCreateCart(user.getId());
         
         Product product = productRepository.findById(request.getProductId())
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "id", request.getProductId()));
@@ -79,14 +84,18 @@ public class CartService {
         }
         
         cart.recalculateTotals();
-        cart = cartRepository.save(cart);
+        cart = isDemoUser(user)
+                ? demoModeService.saveCart(user, cart)
+                : cartRepository.save(cart);
         return CartResponse.fromCart(cart);
     }
     
     public CartResponse updateCartItem(String productId, int quantity) {
         User user = userService.getCurrentUser();
-        Cart cart = cartRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Cart", "userId", user.getId()));
+        Cart cart = isDemoUser(user)
+                ? demoModeService.getOrCreateCartByUser(user)
+                : cartRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Cart", "userId", user.getId()));
         
         Cart.CartItem item = cart.getItems().stream()
                 .filter(i -> i.getProductId().equals(productId))
@@ -107,23 +116,34 @@ public class CartService {
         }
         
         cart.recalculateTotals();
-        cart = cartRepository.save(cart);
+        cart = isDemoUser(user)
+                ? demoModeService.saveCart(user, cart)
+                : cartRepository.save(cart);
         return CartResponse.fromCart(cart);
     }
     
     public CartResponse removeFromCart(String productId) {
         User user = userService.getCurrentUser();
-        Cart cart = cartRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Cart", "userId", user.getId()));
+        Cart cart = isDemoUser(user)
+                ? demoModeService.getOrCreateCartByUser(user)
+                : cartRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Cart", "userId", user.getId()));
         
         cart.getItems().removeIf(item -> item.getProductId().equals(productId));
         cart.recalculateTotals();
-        cart = cartRepository.save(cart);
+        cart = isDemoUser(user)
+                ? demoModeService.saveCart(user, cart)
+                : cartRepository.save(cart);
         return CartResponse.fromCart(cart);
     }
     
     public void clearCart() {
         User user = userService.getCurrentUser();
+        if (isDemoUser(user)) {
+            demoModeService.clearCart(user);
+            return;
+        }
+
         Cart cart = cartRepository.findByUserId(user.getId()).orElse(null);
         if (cart != null) {
             cart.getItems().clear();
@@ -134,6 +154,14 @@ public class CartService {
     
     public Cart getCartEntity() {
         User user = userService.getCurrentUser();
+        if (isDemoUser(user)) {
+            Cart cart = demoModeService.getOrCreateCartByUser(user);
+            if (cart.getItems() == null || cart.getItems().isEmpty()) {
+                throw new BadRequestException("Cart is empty");
+            }
+            return cart;
+        }
+
         return cartRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new BadRequestException("Cart is empty"));
     }
@@ -149,5 +177,9 @@ public class CartService {
                             .build();
                     return cartRepository.save(newCart);
                 });
+    }
+
+    private boolean isDemoUser(User user) {
+        return demoModeService.isDemoUserId(user.getId());
     }
 }

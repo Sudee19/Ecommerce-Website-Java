@@ -7,6 +7,7 @@ import com.ecommerce.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
@@ -15,6 +16,7 @@ public class PaymentService {
     
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
+    private final DemoModeService demoModeService;
     
     /**
      * Dummy payment processing - simulates successful payment
@@ -22,8 +24,11 @@ public class PaymentService {
      */
     public Payment processPayment(Order order, String paymentMethod) {
         Payment.PaymentMethod method = parsePaymentMethod(paymentMethod);
+
+        boolean isDemoUser = demoModeService.isDemoUserId(order.getUserId());
         
         Payment payment = Payment.builder()
+                .id(isDemoUser ? ("demo-payment-" + UUID.randomUUID()) : null)
                 .orderId(order.getId())
                 .userId(order.getUserId())
                 .amount(order.getTotalAmount())
@@ -31,8 +36,10 @@ public class PaymentService {
                 .method(method)
                 .status(Payment.PaymentStatus.INITIATED)
                 .build();
-        
-        payment = paymentRepository.save(payment);
+
+        if (!isDemoUser) {
+            payment = paymentRepository.save(payment);
+        }
         
         // Simulate payment processing
         if (method == Payment.PaymentMethod.COD) {
@@ -53,11 +60,17 @@ public class PaymentService {
             order.setPaymentStatus(Order.PaymentStatus.COMPLETED);
             order.setStatus(Order.OrderStatus.CONFIRMED);
         }
+
+        payment.setCompletedAt(LocalDateTime.now());
         
         order.setPaymentId(payment.getId());
-        orderRepository.save(order);
-        
-        return paymentRepository.save(payment);
+
+        if (!isDemoUser) {
+            orderRepository.save(order);
+            return paymentRepository.save(payment);
+        }
+
+        return payment;
     }
     
     private Payment.PaymentMethod parsePaymentMethod(String method) {

@@ -17,9 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
     
     private final UserRepository userRepository;
+    private final DemoModeService demoModeService;
     
     public User getCurrentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (demoModeService.isDemoEmail(email)) {
+            return demoModeService.getOrCreateDemoUserByEmail(email);
+        }
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
     }
@@ -58,7 +62,11 @@ public class UserService {
         if (request.getCountry() != null) address.setCountry(request.getCountry());
         
         user.setAddress(address);
-        
+
+        if (demoModeService.isDemoUserId(user.getId())) {
+            return UserResponse.fromUser(user);
+        }
+
         user = userRepository.save(user);
         return UserResponse.fromUser(user);
     }

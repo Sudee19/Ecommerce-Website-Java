@@ -51,7 +51,9 @@ public class DemoDataService {
         boolean firstSeed = !categoryRepository.existsBySlug(DEMO_MARKER_SLUG);
         if (firstSeed) {
             seedCatalog();
-            seedDemoOrdersForVerifiedReviews(demoUser);
+            if (demoUser != null) {
+                seedDemoOrdersForVerifiedReviews(demoUser);
+            }
 
             categoryRepository.save(Category.builder()
                     .name("Demo Seed Marker")
@@ -66,7 +68,9 @@ public class DemoDataService {
 
         ensureHighVolumeReviews();
 
-        seedDemoUserCartAndWishlist(demoUser);
+        if (demoUser != null) {
+            seedDemoUserCartAndWishlist(demoUser);
+        }
     }
 
     private void ensureHighVolumeReviews() {

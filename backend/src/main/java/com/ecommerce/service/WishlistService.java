@@ -11,7 +11,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -19,9 +21,20 @@ import java.util.stream.Collectors;
 public class WishlistService {
     private final WishlistRepository wishlistRepository;
     private final ProductRepository productRepository;
+    private final DemoModeService demoModeService;
 
     @Transactional
     public Wishlist getOrCreateWishlist(User user) {
+        if (demoModeService.isDemoUserId(user.getId())) {
+            Wishlist wishlist = new Wishlist();
+            wishlist.setUser(user);
+            wishlist.setProducts(demoModeService.getWishlistProductIds(user).stream()
+                    .filter(Objects::nonNull)
+                    .map(id -> productRepository.findById(Objects.requireNonNull(id)).orElse(null))
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toCollection(ArrayList::new)));
+            return wishlist;
+        }
         return wishlistRepository.findByUser_Id(user.getId())
                 .orElseGet(() -> {
                     Wishlist wishlist = new Wishlist();
@@ -32,6 +45,14 @@ public class WishlistService {
 
     @Transactional(readOnly = true)
     public List<ProductResponse> getWishlist(User user) {
+        if (demoModeService.isDemoUserId(user.getId())) {
+            return demoModeService.getWishlistProductIds(user).stream()
+                    .filter(Objects::nonNull)
+                    .map(id -> productRepository.findById(Objects.requireNonNull(id)).orElse(null))
+                    .filter(Objects::nonNull)
+                    .map(ProductResponse::fromProduct)
+                    .collect(Collectors.toList());
+        }
         Wishlist wishlist = getOrCreateWishlist(user);
         return wishlist.getProducts().stream()
                 .map(ProductResponse::fromProduct)
@@ -42,6 +63,11 @@ public class WishlistService {
     public void addToWishlist(User user, String productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+        if (demoModeService.isDemoUserId(user.getId())) {
+            demoModeService.addToWishlist(user, product.getId());
+            return;
+        }
 
         Wishlist wishlist = getOrCreateWishlist(user);
 
@@ -56,6 +82,11 @@ public class WishlistService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
+        if (demoModeService.isDemoUserId(user.getId())) {
+            demoModeService.removeFromWishlist(user, product.getId());
+            return;
+        }
+
         Wishlist wishlist = getOrCreateWishlist(user);
         wishlist.removeProduct(product);
         wishlistRepository.save(wishlist);
@@ -63,6 +94,10 @@ public class WishlistService {
 
     @Transactional
     public void clearWishlist(User user) {
+        if (demoModeService.isDemoUserId(user.getId())) {
+            demoModeService.clearWishlist(user);
+            return;
+        }
         Wishlist wishlist = getOrCreateWishlist(user);
         wishlist.clearProducts();
         wishlistRepository.save(wishlist);
@@ -70,6 +105,9 @@ public class WishlistService {
 
     @Transactional(readOnly = true)
     public boolean isInWishlist(User user, String productId) {
+        if (demoModeService.isDemoUserId(user.getId())) {
+            return demoModeService.isInWishlist(user, productId);
+        }
         Wishlist wishlist = wishlistRepository.findByUser_Id(user.getId()).orElse(null);
         if (wishlist == null) {
             return false;

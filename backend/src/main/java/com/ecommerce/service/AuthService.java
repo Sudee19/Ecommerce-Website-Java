@@ -15,7 +15,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -26,8 +28,9 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManager authenticationManager;
     private final DemoDataService demoDataService;
+    private final DemoModeService demoModeService;
 
-    private static final String DEMO_EMAIL = "demo@ecommerce.local";
+    private static final String DEMO_EMAIL_DOMAIN = "@ecommerce.local";
     
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -63,19 +66,15 @@ public class AuthService {
     }
 
     public AuthResponse demoLogin() {
-        User user = userRepository.findByEmail(DEMO_EMAIL)
-                .orElseGet(() -> userRepository.save(User.builder()
-                        .firstName("Demo")
-                        .lastName("User")
-                        .email(DEMO_EMAIL)
-                        .password(passwordEncoder.encode("demo-password"))
-                        .roles(Set.of(User.Role.USER))
-                        .active(true)
-                        .build()));
+        demoDataService.ensureDemoData(null);
 
-        demoDataService.ensureDemoData(user);
+        String demoEmail = "demo+" + UUID.randomUUID() + DEMO_EMAIL_DOMAIN;
+        User user = demoModeService.getOrCreateDemoUserByEmail(demoEmail);
+        user.setCreatedAt(LocalDateTime.now());
+        user.setRoles(Set.of(User.Role.USER));
+        user.setActive(true);
 
-        String token = jwtTokenProvider.generateToken(user.getEmail());
+        String token = jwtTokenProvider.generateToken(demoEmail);
         return AuthResponse.of(token, UserResponse.fromUser(user));
     }
 }

@@ -15,7 +15,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +28,7 @@ public class ReviewService {
     private final ProductService productService;
     private final UserService userService;
     private final OrderRepository orderRepository;
+    private final DemoModeService demoModeService;
     
     public Page<ReviewResponse> getProductReviews(String productId, Pageable pageable) {
         return reviewRepository.findByProductId(productId, pageable)
@@ -34,22 +37,55 @@ public class ReviewService {
     
     public ReviewResponse createReview(ReviewRequest request) {
         User user = userService.getCurrentUser();
+
+        if (request.getProductId() == null) {
+            throw new BadRequestException("Product id is required");
+        }
+
+        String productId = request.getProductId();
+
+        if (demoModeService.isDemoUserId(user.getId())) {
+            // Check if product exists
+            if (!productRepository.existsById(productId)) {
+                throw new ResourceNotFoundException("Product", "id", productId);
+            }
+
+            if (demoModeService.existsReviewByProductAndUser(user, productId)) {
+                throw new BadRequestException("You have already reviewed this product");
+            }
+
+            Review review = Review.builder()
+                    .id("demo-review-" + UUID.randomUUID())
+                    .productId(productId)
+                    .userId(user.getId())
+                    .userName((user.getFirstName() != null ? user.getFirstName() : "Demo") + " " + (user.getLastName() != null ? user.getLastName() : "User"))
+                    .rating(request.getRating())
+                    .title(request.getTitle())
+                    .comment(request.getComment())
+                    .verified(false)
+                    .helpfulCount(0)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            demoModeService.saveReview(user, review);
+            return ReviewResponse.fromReview(review);
+        }
         
         // Check if product exists
-        if (!productRepository.existsById(request.getProductId())) {
-            throw new ResourceNotFoundException("Product", "id", request.getProductId());
+        if (!productRepository.existsById(productId)) {
+            throw new ResourceNotFoundException("Product", "id", productId);
         }
         
         // Check if user already reviewed this product
-        if (reviewRepository.existsByProductIdAndUserId(request.getProductId(), user.getId())) {
+        if (reviewRepository.existsByProductIdAndUserId(productId, user.getId())) {
             throw new BadRequestException("You have already reviewed this product");
         }
         
         // Check if user has purchased the product (verified purchase)
-        boolean isVerifiedPurchase = hasUserPurchasedProduct(user.getId(), request.getProductId());
+        boolean isVerifiedPurchase = hasUserPurchasedProduct(user.getId(), productId);
         
         Review review = Review.builder()
-                .productId(request.getProductId())
+                .productId(productId)
                 .userId(user.getId())
                 .userName(user.getFirstName() + " " + user.getLastName())
                 .rating(request.getRating())
@@ -82,6 +118,27 @@ public class ReviewService {
     
     public ReviewResponse updateReview(String reviewId, ReviewRequest request) {
         User user = userService.getCurrentUser();
+
+        if (reviewId == null) {
+            throw new BadRequestException("Review id is required");
+        }
+
+        if (demoModeService.isDemoUserId(user.getId())) {
+            Review review = demoModeService.getReview(user, reviewId);
+            if (review == null) {
+                throw new ResourceNotFoundException("Review", "id", reviewId);
+            }
+
+            if (!review.getUserId().equals(user.getId())) {
+                throw new BadRequestException("You can only update your own reviews");
+            }
+
+            review.setRating(request.getRating());
+            if (request.getTitle() != null) review.setTitle(request.getTitle());
+            if (request.getComment() != null) review.setComment(request.getComment());
+            demoModeService.saveReview(user, review);
+            return ReviewResponse.fromReview(review);
+        }
         
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new ResourceNotFoundException("Review", "id", reviewId));
@@ -104,6 +161,21 @@ public class ReviewService {
     
     public void deleteReview(String reviewId) {
         User user = userService.getCurrentUser();
+
+        if (demoModeService.isDemoUserId(user.getId())) {
+            Review review = demoModeService.getReview(user, reviewId);
+            if (review == null) {
+                throw new ResourceNotFoundException("Review", "id", reviewId);
+            }
+
+            if (!review.getUserId().equals(user.getId()) &&
+                !user.getRoles().contains(User.Role.ADMIN)) {
+                throw new BadRequestException("You can only delete your own reviews");
+            }
+
+            demoModeService.deleteReview(user, reviewId);
+            return;
+        }
         
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new ResourceNotFoundException("Review", "id", reviewId));
@@ -121,6 +193,23 @@ public class ReviewService {
     }
     
     public ReviewResponse markHelpful(String reviewId) {
+        User user = userService.getCurrentUser();
+
+        if (demoModeService.isDemoUserId(user.getId())) {
+            Review demoReview = demoModeService.getReview(user, reviewId);
+            if (demoReview != null) {
+                demoReview.setHelpfulCount(demoReview.getHelpfulCount() + 1);
+                demoModeService.saveReview(user, demoReview);
+                return ReviewResponse.fromReview(demoReview);
+            }
+
+            // If it's a real review in DB, simulate increment but don't persist.
+            Review review = reviewRepository.findById(reviewId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Review", "id", reviewId));
+            review.setHelpfulCount(review.getHelpfulCount() + 1);
+            return ReviewResponse.fromReview(review);
+        }
+
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new ResourceNotFoundException("Review", "id", reviewId));
         
