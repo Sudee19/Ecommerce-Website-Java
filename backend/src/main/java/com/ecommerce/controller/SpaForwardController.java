@@ -17,7 +17,18 @@ public class SpaForwardController implements ErrorController {
         String uri = uriAttr != null ? uriAttr.toString() : "";
 
         Object statusAttr = request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE);
-        int status = statusAttr instanceof Integer ? (Integer) statusAttr : 500;
+        int status = 404;
+        if (statusAttr instanceof Integer) {
+            status = (Integer) statusAttr;
+        } else if (statusAttr instanceof Number) {
+            status = ((Number) statusAttr).intValue();
+        } else if (statusAttr instanceof String) {
+            try {
+                status = Integer.parseInt((String) statusAttr);
+            } catch (NumberFormatException ignored) {
+                status = 404;
+            }
+        }
 
         String accept = request.getHeader("Accept");
         boolean wantsHtml = accept != null && accept.contains(MediaType.TEXT_HTML_VALUE);
@@ -28,6 +39,6 @@ public class SpaForwardController implements ErrorController {
 
         return ResponseEntity.status(status)
                 .contentType(MediaType.TEXT_PLAIN)
-                .body("Not Found");
+                .body(status == 404 ? "Not Found" : "");
     }
 }
